@@ -105,7 +105,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
-    const result = await db.insert(products).values(insertProduct).returning();
+    const productData = {
+      ...insertProduct,
+      price: insertProduct.price.toString(),
+      cost: insertProduct.cost.toString()
+    };
+    const result = await db.insert(products).values(productData).returning();
     return result[0];
   }
 
@@ -115,22 +120,31 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return undefined;
 
     // Track cost changes
-    if (update.cost && update.cost !== existing.cost) {
+    if (update.cost && update.cost.toString() !== existing.cost) {
       await this.createCostHistory({
         productId: id,
-        oldCost: existing.cost,
+        oldCost: parseFloat(existing.cost),
         newCost: update.cost,
         reason: "Manual update"
       });
     }
 
-    const result = await db.update(products).set(update).where(eq(products.id, id)).returning();
+    const updateData: any = {};
+    Object.keys(update).forEach(key => {
+      if (key === 'price' || key === 'cost') {
+        updateData[key] = (update as any)[key]?.toString();
+      } else {
+        updateData[key] = (update as any)[key];
+      }
+    });
+
+    const result = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
     return result[0];
   }
 
   async deleteProduct(id: number): Promise<boolean> {
     const result = await db.delete(products).where(eq(products.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getInventoryAlerts(): Promise<InventoryAlert[]> {
@@ -148,22 +162,23 @@ export class DatabaseStorage implements IStorage {
 
   // Sales methods
   async getSales(): Promise<Sale[]> {
-    return Array.from(this.sales.values());
+    return await db.select().from(sales).orderBy(desc(sales.createdAt));
   }
 
   async getSale(id: number): Promise<Sale | undefined> {
-    return this.sales.get(id);
+    const result = await db.select().from(sales).where(eq(sales.id, id));
+    return result[0];
   }
 
   async getSaleWithDetails(id: number): Promise<SaleWithDetails | undefined> {
-    const sale = this.sales.get(id);
+    const sale = await this.getSale(id);
     if (!sale) return undefined;
 
     const saleItems = sale.items as SaleItem[];
     const itemDetails = [];
 
     for (const item of saleItems) {
-      const product = this.products.get(item.productId);
+      const product = await this.getProduct(item.productId);
       if (product) {
         itemDetails.push({
           product,
@@ -181,10 +196,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSalesWithDetails(): Promise<SaleWithDetails[]> {
-    const sales = await this.getSales();
+    const salesArray = await this.getSales();
     const salesWithDetails = [];
 
-    for (const sale of sales) {
+    for (const sale of salesArray) {
       const saleWithDetails = await this.getSaleWithDetails(sale.id);
       if (saleWithDetails) {
         salesWithDetails.push(saleWithDetails);
@@ -195,118 +210,110 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSale(insertSale: InsertSale): Promise<Sale> {
-    const id = this.currentSaleId++;
-    const sale: Sale = {
+    const saleData = {
       ...insertSale,
-      id,
       totalAmount: insertSale.totalAmount.toString(),
-      taxAmount: insertSale.taxAmount?.toString() || "0",
-      items: insertSale.items as any,
-      createdAt: new Date(),
+      taxAmount: insertSale.taxAmount?.toString() || "0"
     };
+    const result = await db.insert(sales).values(saleData).returning();
+    const sale = result[0];
 
     // Update stock for sold items
     for (const item of insertSale.items) {
-      const product = this.products.get(item.productId);
+      const product = await this.getProduct(item.productId);
       if (product) {
-        const updatedProduct = {
-          ...product,
-          stock: product.stock - item.quantity
-        };
-        this.products.set(item.productId, updatedProduct);
+        await db.update(products)
+          .set({ stock: product.stock - item.quantity })
+          .where(eq(products.id, item.productId));
       }
     }
 
-    this.sales.set(id, sale);
     return sale;
   }
 
   async updateSale(id: number, update: Partial<InsertSale>): Promise<Sale | undefined> {
-    const existing = this.sales.get(id);
-    if (!existing) return undefined;
-
-    const updated: Sale = {
-      ...existing,
-      ...update,
-      totalAmount: update.totalAmount ? update.totalAmount.toString() : existing.totalAmount,
-      taxAmount: update.taxAmount ? update.taxAmount.toString() : existing.taxAmount,
-      items: update.items ? update.items as any : existing.items,
-    };
-    this.sales.set(id, updated);
-    return updated;
+    const updateData = { ...update };
+    if (update.totalAmount) updateData.totalAmount = update.totalAmount.toString() as any;
+    if (update.taxAmount) updateData.taxAmount = update.taxAmount.toString() as any;
+    
+    const result = await db.update(sales).set(updateData).where(eq(sales.id, id)).returning();
+    return result[0];
   }
 
   async deleteSale(id: number): Promise<boolean> {
-    return this.sales.delete(id);
+    const result = await db.delete(sales).where(eq(sales.id, id));
+    return result.rowCount > 0;
   }
 
   // Operational Costs methods
   async getOperationalCosts(): Promise<OperationalCost[]> {
-    return Array.from(this.operationalCosts.values());
+    return await db.select().from(operationalCosts).orderBy(desc(operationalCosts.date));
   }
 
   async getOperationalCost(id: number): Promise<OperationalCost | undefined> {
-    return this.operationalCosts.get(id);
+    const result = await db.select().from(operationalCosts).where(eq(operationalCosts.id, id));
+    return result[0];
   }
 
   async createOperationalCost(insertCost: InsertOperationalCost): Promise<OperationalCost> {
-    const id = this.currentCostId++;
-    const cost: OperationalCost = {
+    const costData = {
       ...insertCost,
-      id,
-      amount: insertCost.amount.toString(),
+      amount: insertCost.amount.toString()
     };
-    this.operationalCosts.set(id, cost);
-    return cost;
+    const result = await db.insert(operationalCosts).values(costData).returning();
+    return result[0];
   }
 
   async updateOperationalCost(id: number, update: Partial<InsertOperationalCost>): Promise<OperationalCost | undefined> {
-    const existing = this.operationalCosts.get(id);
-    if (!existing) return undefined;
-
-    const updated: OperationalCost = {
-      ...existing,
-      ...update,
-      amount: update.amount ? update.amount.toString() : existing.amount,
-    };
-    this.operationalCosts.set(id, updated);
-    return updated;
+    const updateData = { ...update };
+    if (update.amount) updateData.amount = update.amount.toString() as any;
+    
+    const result = await db.update(operationalCosts).set(updateData).where(eq(operationalCosts.id, id)).returning();
+    return result[0];
   }
 
   async deleteOperationalCost(id: number): Promise<boolean> {
-    return this.operationalCosts.delete(id);
+    const result = await db.delete(operationalCosts).where(eq(operationalCosts.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   // Cost History methods
   async getCostHistory(productId?: number): Promise<CostHistory[]> {
-    const history = Array.from(this.costHistory.values());
     if (productId) {
-      return history.filter(h => h.productId === productId);
+      return await db.select().from(costHistory)
+        .where(eq(costHistory.productId, productId))
+        .orderBy(desc(costHistory.updatedAt));
     }
-    return history;
+    return await db.select().from(costHistory).orderBy(desc(costHistory.updatedAt));
   }
 
   async createCostHistory(insertHistory: InsertCostHistory): Promise<CostHistory> {
-    const id = this.currentHistoryId++;
-    const history: CostHistory = {
+    const historyData = {
       ...insertHistory,
-      id,
       oldCost: insertHistory.oldCost.toString(),
-      newCost: insertHistory.newCost.toString(),
-      updatedAt: new Date(),
+      newCost: insertHistory.newCost.toString()
     };
-    this.costHistory.set(id, history);
-    return history;
+    const result = await db.insert(costHistory).values(historyData).returning();
+    return result[0];
   }
 
   // Analytics methods
   async getSalesAnalytics(days: number = 30): Promise<SalesAnalytics> {
-    const sales = await this.getSalesWithDetails();
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const recentSales = sales.filter(sale => sale.createdAt >= cutoffDate);
+    const salesArray = await db.select().from(sales)
+      .where(gte(sales.createdAt, cutoffDate))
+      .orderBy(desc(sales.createdAt));
 
-    const totalSales = recentSales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount), 0);
-    const totalProfit = recentSales.reduce((sum, sale) => {
+    const salesWithDetails = [];
+    for (const sale of salesArray) {
+      const saleWithDetails = await this.getSaleWithDetails(sale.id);
+      if (saleWithDetails) {
+        salesWithDetails.push(saleWithDetails);
+      }
+    }
+
+    const totalSales = salesWithDetails.reduce((sum, sale) => sum + parseFloat(sale.totalAmount), 0);
+    const totalProfit = salesWithDetails.reduce((sum, sale) => {
       const saleProfit = sale.itemDetails.reduce((itemSum, item) => {
         const itemCost = parseFloat(item.product.cost) * item.quantity;
         const itemRevenue = item.total;
@@ -315,11 +322,11 @@ export class DatabaseStorage implements IStorage {
       return sum + saleProfit;
     }, 0);
 
-    const averageOrderValue = recentSales.length > 0 ? totalSales / recentSales.length : 0;
+    const averageOrderValue = salesWithDetails.length > 0 ? totalSales / salesWithDetails.length : 0;
 
     // Top selling products
     const productSales = new Map<number, { product: Product; totalSold: number; revenue: number }>();
-    recentSales.forEach(sale => {
+    salesWithDetails.forEach(sale => {
       sale.itemDetails.forEach(item => {
         const existing = productSales.get(item.product.id);
         if (existing) {
@@ -341,7 +348,7 @@ export class DatabaseStorage implements IStorage {
 
     // Sales by category
     const salesByCategory: Record<string, number> = {};
-    recentSales.forEach(sale => {
+    salesWithDetails.forEach(sale => {
       sale.itemDetails.forEach(item => {
         const category = item.product.category;
         salesByCategory[category] = (salesByCategory[category] || 0) + item.total;
@@ -355,9 +362,10 @@ export class DatabaseStorage implements IStorage {
       const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
       
-      const daySales = recentSales.filter(sale => 
-        sale.createdAt >= dayStart && sale.createdAt < dayEnd
-      );
+      const daySales = salesWithDetails.filter(sale => {
+        const saleDate = sale.createdAt ? new Date(sale.createdAt) : new Date();
+        return saleDate >= dayStart && saleDate < dayEnd;
+      });
       
       const dayRevenue = daySales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount), 0);
       const dayProfit = daySales.reduce((sum, sale) => {
