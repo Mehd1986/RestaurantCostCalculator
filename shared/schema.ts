@@ -56,12 +56,20 @@ export const costHistory = pgTable("cost_history", {
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   createdAt: true,
+}).extend({
+  price: z.number().positive(),
+  cost: z.number().positive(),
+  stock: z.number().int().min(0).default(0),
+  minStock: z.number().int().min(0).default(5),
+  isActive: z.boolean().default(true),
 });
 
 export const insertSaleSchema = createInsertSchema(sales).omit({
   id: true,
   createdAt: true,
 }).extend({
+  totalAmount: z.number().positive(),
+  taxAmount: z.number().min(0).optional(),
   items: z.array(z.object({
     productId: z.number(),
     quantity: z.number().positive(),
@@ -72,11 +80,19 @@ export const insertSaleSchema = createInsertSchema(sales).omit({
 
 export const insertOperationalCostSchema = createInsertSchema(operationalCosts).omit({
   id: true,
+}).extend({
+  amount: z.number().positive(),
+  date: z.date(),
+  isRecurring: z.boolean().default(false),
 });
 
 export const insertCostHistorySchema = createInsertSchema(costHistory).omit({
   id: true,
   updatedAt: true,
+}).extend({
+  oldCost: z.number(),
+  newCost: z.number(),
+  productId: z.number().optional(),
 });
 
 // Types
