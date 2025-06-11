@@ -144,7 +144,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProduct(id: number): Promise<boolean> {
     const result = await db.delete(products).where(eq(products.id, id));
-    return (result.rowCount || 0) > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getInventoryAlerts(): Promise<InventoryAlert[]> {
@@ -232,9 +232,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSale(id: number, update: Partial<InsertSale>): Promise<Sale | undefined> {
-    const updateData = { ...update };
-    if (update.totalAmount) updateData.totalAmount = update.totalAmount.toString() as any;
-    if (update.taxAmount) updateData.taxAmount = update.taxAmount.toString() as any;
+    const updateData: any = {};
+    Object.keys(update).forEach(key => {
+      if (key === 'totalAmount' || key === 'taxAmount') {
+        updateData[key] = (update as any)[key]?.toString();
+      } else {
+        updateData[key] = (update as any)[key];
+      }
+    });
     
     const result = await db.update(sales).set(updateData).where(eq(sales.id, id)).returning();
     return result[0];
@@ -242,7 +247,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSale(id: number): Promise<boolean> {
     const result = await db.delete(sales).where(eq(sales.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Operational Costs methods
@@ -265,8 +270,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOperationalCost(id: number, update: Partial<InsertOperationalCost>): Promise<OperationalCost | undefined> {
-    const updateData = { ...update };
-    if (update.amount) updateData.amount = update.amount.toString() as any;
+    const updateData: any = {};
+    Object.keys(update).forEach(key => {
+      if (key === 'amount') {
+        updateData[key] = (update as any)[key]?.toString();
+      } else {
+        updateData[key] = (update as any)[key];
+      }
+    });
     
     const result = await db.update(operationalCosts).set(updateData).where(eq(operationalCosts.id, id)).returning();
     return result[0];
