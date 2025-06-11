@@ -1,180 +1,247 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertIngredientSchema, insertRecipeSchema } from "@shared/schema";
+import { insertProductSchema, insertSaleSchema, insertOperationalCostSchema, insertCostHistorySchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Ingredients routes
-  app.get("/api/ingredients", async (req, res) => {
+  // Products routes
+  app.get("/api/products", async (req, res) => {
     try {
-      const ingredients = await storage.getIngredients();
-      res.json(ingredients);
+      const products = await storage.getProducts();
+      res.json(products);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch ingredients" });
+      res.status(500).json({ message: "Failed to fetch products" });
     }
   });
 
-  app.get("/api/ingredients/:id", async (req, res) => {
+  app.get("/api/products/with-margin", async (req, res) => {
+    try {
+      const products = await storage.getProductsWithMargin();
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch products with margin" });
+    }
+  });
+
+  app.get("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const ingredient = await storage.getIngredient(id);
-      if (!ingredient) {
-        return res.status(404).json({ message: "Ingredient not found" });
+      const product = await storage.getProduct(id);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
       }
-      res.json(ingredient);
+      res.json(product);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch ingredient" });
+      res.status(500).json({ message: "Failed to fetch product" });
     }
   });
 
-  app.post("/api/ingredients", async (req, res) => {
+  app.post("/api/products", async (req, res) => {
     try {
-      const validatedData = insertIngredientSchema.parse(req.body);
-      const ingredient = await storage.createIngredient(validatedData);
-      res.status(201).json(ingredient);
+      const validatedData = insertProductSchema.parse(req.body);
+      const product = await storage.createProduct(validatedData);
+      res.status(201).json(product);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid ingredient data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid product data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create ingredient" });
+      res.status(500).json({ message: "Failed to create product" });
     }
   });
 
-  app.put("/api/ingredients/:id", async (req, res) => {
+  app.put("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = insertIngredientSchema.partial().parse(req.body);
-      const ingredient = await storage.updateIngredient(id, validatedData);
-      if (!ingredient) {
-        return res.status(404).json({ message: "Ingredient not found" });
+      const validatedData = insertProductSchema.partial().parse(req.body);
+      const product = await storage.updateProduct(id, validatedData);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
       }
-      res.json(ingredient);
+      res.json(product);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid ingredient data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid product data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to update ingredient" });
+      res.status(500).json({ message: "Failed to update product" });
     }
   });
 
-  app.delete("/api/ingredients/:id", async (req, res) => {
+  app.delete("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteIngredient(id);
+      const deleted = await storage.deleteProduct(id);
       if (!deleted) {
-        return res.status(404).json({ message: "Ingredient not found" });
+        return res.status(404).json({ message: "Product not found" });
       }
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete ingredient" });
+      res.status(500).json({ message: "Failed to delete product" });
     }
   });
 
-  // Recipes routes
-  app.get("/api/recipes", async (req, res) => {
+  // Inventory alerts
+  app.get("/api/inventory/alerts", async (req, res) => {
     try {
-      const recipes = await storage.getRecipesWithDetails();
-      res.json(recipes);
+      const alerts = await storage.getInventoryAlerts();
+      res.json(alerts);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch recipes" });
+      res.status(500).json({ message: "Failed to fetch inventory alerts" });
     }
   });
 
-  app.get("/api/recipes/:id", async (req, res) => {
+  // Sales routes
+  app.get("/api/sales", async (req, res) => {
+    try {
+      const sales = await storage.getSalesWithDetails();
+      res.json(sales);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch sales" });
+    }
+  });
+
+  app.get("/api/sales/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const recipe = await storage.getRecipeWithDetails(id);
-      if (!recipe) {
-        return res.status(404).json({ message: "Recipe not found" });
+      const sale = await storage.getSaleWithDetails(id);
+      if (!sale) {
+        return res.status(404).json({ message: "Sale not found" });
       }
-      res.json(recipe);
+      res.json(sale);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch recipe" });
+      res.status(500).json({ message: "Failed to fetch sale" });
     }
   });
 
-  app.post("/api/recipes", async (req, res) => {
+  app.post("/api/sales", async (req, res) => {
     try {
-      const validatedData = insertRecipeSchema.parse(req.body);
-      const recipe = await storage.createRecipe(validatedData);
-      res.status(201).json(recipe);
+      const validatedData = insertSaleSchema.parse(req.body);
+      const sale = await storage.createSale(validatedData);
+      res.status(201).json(sale);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid recipe data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid sale data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create recipe" });
+      res.status(500).json({ message: "Failed to create sale" });
     }
   });
 
-  app.put("/api/recipes/:id", async (req, res) => {
+  app.put("/api/sales/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = insertRecipeSchema.partial().parse(req.body);
-      const recipe = await storage.updateRecipe(id, validatedData);
-      if (!recipe) {
-        return res.status(404).json({ message: "Recipe not found" });
+      const validatedData = insertSaleSchema.partial().parse(req.body);
+      const sale = await storage.updateSale(id, validatedData);
+      if (!sale) {
+        return res.status(404).json({ message: "Sale not found" });
       }
-      res.json(recipe);
+      res.json(sale);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid recipe data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid sale data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to update recipe" });
+      res.status(500).json({ message: "Failed to update sale" });
     }
   });
 
-  app.delete("/api/recipes/:id", async (req, res) => {
+  app.delete("/api/sales/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteRecipe(id);
+      const deleted = await storage.deleteSale(id);
       if (!deleted) {
-        return res.status(404).json({ message: "Recipe not found" });
+        return res.status(404).json({ message: "Sale not found" });
       }
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete recipe" });
+      res.status(500).json({ message: "Failed to delete sale" });
     }
   });
 
-  // Summary/analytics route
-  app.get("/api/summary", async (req, res) => {
+  // Operational costs routes
+  app.get("/api/costs", async (req, res) => {
     try {
-      const ingredients = await storage.getIngredients();
-      const recipes = await storage.getRecipesWithDetails();
-      
-      const totalIngredients = ingredients.length;
-      const totalRecipes = recipes.length;
-      const averageCost = recipes.length > 0 
-        ? recipes.reduce((sum, recipe) => sum + parseFloat(recipe.totalCost), 0) / recipes.length 
-        : 0;
-      const totalInvestment = ingredients.reduce((sum, ingredient) => sum + parseFloat(ingredient.costPerUnit), 0);
-
-      const categoryBreakdown = recipes.reduce((acc, recipe) => {
-        const cost = parseFloat(recipe.totalCost);
-        acc[recipe.category] = (acc[recipe.category] || 0) + cost;
-        return acc;
-      }, {} as Record<string, number>);
-
-      res.json({
-        totalIngredients,
-        totalRecipes,
-        averageCost: averageCost.toFixed(2),
-        totalInvestment: totalInvestment.toFixed(2),
-        categoryBreakdown,
-        recipes: recipes.map(recipe => ({
-          id: recipe.id,
-          name: recipe.name,
-          category: recipe.category,
-          servings: recipe.servings,
-          totalCost: recipe.totalCost,
-          costPerServing: recipe.costPerServing.toFixed(2),
-          suggestedPrice: (recipe.costPerServing * 1.3).toFixed(2) // 30% margin
-        }))
-      });
+      const costs = await storage.getOperationalCosts();
+      res.json(costs);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch summary data" });
+      res.status(500).json({ message: "Failed to fetch operational costs" });
+    }
+  });
+
+  app.get("/api/costs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const cost = await storage.getOperationalCost(id);
+      if (!cost) {
+        return res.status(404).json({ message: "Operational cost not found" });
+      }
+      res.json(cost);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch operational cost" });
+    }
+  });
+
+  app.post("/api/costs", async (req, res) => {
+    try {
+      const validatedData = insertOperationalCostSchema.parse(req.body);
+      const cost = await storage.createOperationalCost(validatedData);
+      res.status(201).json(cost);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid cost data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create operational cost" });
+    }
+  });
+
+  app.put("/api/costs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertOperationalCostSchema.partial().parse(req.body);
+      const cost = await storage.updateOperationalCost(id, validatedData);
+      if (!cost) {
+        return res.status(404).json({ message: "Operational cost not found" });
+      }
+      res.json(cost);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid cost data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update operational cost" });
+    }
+  });
+
+  app.delete("/api/costs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteOperationalCost(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Operational cost not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete operational cost" });
+    }
+  });
+
+  // Cost history routes
+  app.get("/api/cost-history", async (req, res) => {
+    try {
+      const productId = req.query.productId ? parseInt(req.query.productId as string) : undefined;
+      const history = await storage.getCostHistory(productId);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch cost history" });
+    }
+  });
+
+  // Analytics routes
+  app.get("/api/analytics", async (req, res) => {
+    try {
+      const days = req.query.days ? parseInt(req.query.days as string) : 30;
+      const analytics = await storage.getSalesAnalytics(days);
+      res.json(analytics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch analytics data" });
     }
   });
 

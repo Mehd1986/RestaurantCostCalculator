@@ -1,33 +1,42 @@
 import { Link, useLocation } from "wouter";
-import { Calculator, Package, BookOpen, BarChart3, User } from "lucide-react";
+import { ShoppingCart, Package, DollarSign, BarChart3, Brain, User, Moon, Sun } from "lucide-react";
+import { useState } from "react";
 
 export default function Sidebar() {
   const [location] = useLocation();
+  const [darkMode, setDarkMode] = useState(false);
 
   const navItems = [
-    { path: "/ingredients", label: "Ingredients", icon: Package },
-    { path: "/recipes", label: "Recipes", icon: BookOpen },
-    { path: "/summary", label: "Summary", icon: BarChart3 },
+    { path: "/pos", label: "Point of Sale", icon: ShoppingCart },
+    { path: "/inventory", label: "Inventory", icon: Package },
+    { path: "/costs", label: "Cost Tracking", icon: DollarSign },
+    { path: "/analytics", label: "AI Insights", icon: Brain },
+    { path: "/reports", label: "Reports", icon: BarChart3 },
   ];
 
   const isActive = (path: string) => {
-    if (path === "/ingredients" && (location === "/" || location === "/ingredients")) {
+    if (path === "/pos" && (location === "/" || location === "/pos")) {
       return true;
     }
     return location === path;
   };
 
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    document.documentElement.classList.toggle('dark');
+  };
+
   return (
-    <aside className="w-64 bg-white border-r border-neutral-200 flex flex-col">
+    <aside className="w-64 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col transition-colors">
       {/* Header */}
-      <div className="p-6 border-b border-neutral-200">
+      <div className="p-6 border-b border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Calculator className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-sm">
+            <ShoppingCart className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-neutral-900">Costeau</h1>
-            <p className="text-sm text-neutral-600">Menu Costing</p>
+            <h1 className="text-lg font-bold text-neutral-900 dark:text-white">CashierPro</h1>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">Smart POS System</p>
           </div>
         </div>
       </div>
@@ -43,10 +52,10 @@ export default function Sidebar() {
               <li key={item.path}>
                 <Link href={item.path}>
                   <button
-                    className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                       active
-                        ? "bg-primary text-white"
-                        : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50"
+                        ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg transform scale-[1.02]"
+                        : "text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -59,15 +68,26 @@ export default function Sidebar() {
         </ul>
       </nav>
       
-      {/* Footer */}
-      <div className="p-4 border-t border-neutral-200">
+      {/* Theme Toggle */}
+      <div className="p-4 border-t border-neutral-200 dark:border-neutral-800">
+        <button
+          onClick={toggleDarkMode}
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
+        >
+          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+        </button>
+      </div>
+      
+      {/* User Profile */}
+      <div className="p-4 border-t border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center space-x-3 px-3 py-2">
-          <div className="w-8 h-8 bg-neutral-200 rounded-full flex items-center justify-center">
-            <User className="w-4 h-4 text-neutral-600" />
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <User className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-neutral-700">Chef Antoine</p>
-            <p className="text-xs text-neutral-500">chef@restaurant.com</p>
+            <p className="text-sm font-medium text-neutral-900 dark:text-white">Sarah Johnson</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">Manager • Shift 1</p>
           </div>
         </div>
       </div>
