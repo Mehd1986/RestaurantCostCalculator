@@ -1,56 +1,267 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CashierPro</title>
+    <title>CashierPro POS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f0f2f5;
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
+
+        [data-theme="dark"] {
+            --background: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-right: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .nav-item:hover {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .nav-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .theme-toggle {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            background: var(--card-bg);
+            border: none;
+            cursor: pointer;
+        }
+
+        /* POS Grid */
+        .pos-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .product-card {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .cart-section {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        h1 {
-            color: #1a73e8;
-            text-align: center;
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
         }
-        .description {
-            text-align: center;
-            color: #5f6368;
-            margin-bottom: 20px;
-        }
-        .button {
-            display: block;
-            width: 200px;
-            margin: 20px auto;
-            padding: 10px;
-            background-color: #1a73e8;
+
+        .checkout-button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary-color);
             color: white;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 4px;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
         }
-        .button:hover {
-            background-color: #1557b0;
+
+        .checkout-button:hover {
+            background: var(--secondary-color);
+        }
+
+        /* Analytics Dashboard */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .analytics-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .analytics-card h3 {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .analytics-card .value {
+            font-size: 1.5rem;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>CashierPro</h1>
-        <p class="description">
-            A professional restaurant management system with point of sale and analytics capabilities.
-        </p>
-        <a href="https://github.com/Mehd1986/RestaurantCostCalculator" class="button" target="_blank">
-            View on GitHub
-        </a>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="logo">CashierPro</div>
+            <div class="nav-item active">Dashboard</div>
+            <div class="nav-item">Point of Sale</div>
+            <div class="nav-item">Inventory</div>
+            <div class="nav-item">Analytics</div>
+            <div class="nav-item">Reports</div>
+            <div class="nav-item">Settings</div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>Dashboard</h1>
+                <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <h3>Today's Sales</h3>
+                    <div class="value">$1,234.56</div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Products Sold</h3>
+                    <div class="value">45</div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Low Stock Items</h3>
+                    <div class="value">3</div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Profit Margin</h3>
+                    <div class="value">68%</div>
+                </div>
+            </div>
+
+            <div class="pos-grid">
+                <div class="products-grid">
+                    <div class="product-card">
+                        <h3>Espresso</h3>
+                        <p>$2.99</p>
+                        <small>Stock: 45</small>
+                    </div>
+                    <div class="product-card">
+                        <h3>Cappuccino</h3>
+                        <p>$3.99</p>
+                        <small>Stock: 32</small>
+                    </div>
+                    <div class="product-card">
+                        <h3>Latte</h3>
+                        <p>$4.29</p>
+                        <small>Stock: 28</small>
+                    </div>
+                    <div class="product-card">
+                        <h3>Mocha</h3>
+                        <p>$4.49</p>
+                        <small>Stock: 15</small>
+                    </div>
+                </div>
+
+                <div class="cart-section">
+                    <h2>Current Order</h2>
+                    <div class="cart-item">
+                        <span>Espresso</span>
+                        <span>$2.99</span>
+                    </div>
+                    <div class="cart-item">
+                        <span>Cappuccino</span>
+                        <span>$3.99</span>
+                    </div>
+                    <div class="cart-item">
+                        <span>Total</span>
+                        <span>$6.98</span>
+                    </div>
+                    <button class="checkout-button">Complete Order</button>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function toggleTheme() {
+            document.body.setAttribute('data-theme', 
+                document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+            );
+        }
+    </script>
 </body>
 </html> 
